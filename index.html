@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Workouts"/>
+<meta name="theme-color" content="#fff8f8"/>
+<title>Workout Tracker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#fff8f8;--bg2:#fceef0;--bg3:#f9e4e7;
+  --text:#2a1a1e;--text2:#7a5060;--text3:#b899a2;
+  --border:#f0d5da;--border2:#e8bfc6;
+  --pink:#e8547a;--pink3:#fce8ed;
+  --green:#1db87a;--red:#e03a5a;--amber:#f5a623;
+  --radius:12px;--radius-sm:8px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1e1218;--bg2:#2a1820;--bg3:#331e28;
+  --text:#fceef2;--text2:#c9909f;--text3:#7a5060;
+  --border:#3d2030;--border2:#4d2838;
+  --pink:#f06888;--pink3:#3d1e28;
+  --green:#22c07a;
+}}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);font-size:16px;line-height:1.5;padding-bottom:env(safe-area-inset-bottom)}
+#app{max-width:480px;margin:0 auto;padding:18px 16px}
+input,button{font-family:inherit;font-size:14px;border-radius:var(--radius-sm);border:1px solid var(--border2);padding:9px 11px;background:var(--bg);color:var(--text);outline:none}
+input:focus{border-color:var(--pink);box-shadow:0 0 0 3px rgba(232,84,122,.15)}
+input.center{text-align:center}
+button{cursor:pointer;font-weight:500;background:var(--bg2)}
+button:active{opacity:.7;transform:scale(0.97)}
+button.pink{background:var(--pink);color:#fff;border-color:var(--pink)}
+button.green{background:var(--green);color:#fff;border-color:var(--green)}
+button.danger{color:var(--red);border-color:var(--red);background:transparent}
+button:disabled{opacity:.35;cursor:default}
+.chip{font-size:13px;padding:6px 13px;border-radius:20px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer;display:inline-block;color:var(--text2);font-weight:500}
+.chip.active{background:var(--pink);color:#fff;border-color:var(--pink)}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+.card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px}
+.metric{background:var(--bg2);border-radius:var(--radius);padding:11px 14px;border:1px solid var(--border)}
+.slabel{font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-bottom:7px}
+.last-badge{font-size:12px;margin-bottom:8px;padding:7px 10px;border-radius:var(--radius-sm);background:var(--pink3);border:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;align-items:center;color:var(--text2)}
+.last-badge strong{color:var(--text);font-weight:600}
+.suggestion{font-size:12px;margin-bottom:10px;padding:7px 10px;border-radius:var(--radius-sm);display:flex;align-items:flex-start;gap:7px;font-weight:500}
+.suggestion.increase{background:rgba(29,184,122,.1);color:#0d7a50;border:1px solid rgba(29,184,122,.25)}
+.suggestion.maintain{background:rgba(245,166,35,.1);color:#8a5a00;border:1px solid rgba(245,166,35,.3)}
+.suggestion.deload{background:rgba(232,84,122,.08);color:#a03050;border:1px solid rgba(232,84,122,.2)}
+.suggestion.first{background:rgba(79,127,255,.08);color:#1a3a8a;border:1px solid rgba(79,127,255,.2)}
+@media(prefers-color-scheme:dark){
+  .suggestion.increase{background:rgba(29,184,122,.15);color:#5de0a8}
+  .suggestion.maintain{background:rgba(245,166,35,.12);color:#f5c84a}
+  .suggestion.deload{background:rgba(232,84,122,.15);color:#f08098}
+  .suggestion.first{background:rgba(79,127,255,.12);color:#90b0ff}
+}
+.sets-table{width:100%;border-collapse:collapse;margin-bottom:6px}
+.sets-table th{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-weight:600;padding:0 4px 5px;text-align:center}
+.sets-table th.left{text-align:left}
+.sets-table td{padding:3px 4px;vertical-align:middle}
+.bar-wrap{flex:1;height:6px;background:var(--border);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .4s}
+.day-grid{display:flex;gap:4px;margin-bottom:4px}
+.day-col{flex:1;text-align:center}
+.dot{width:10px;height:10px;border-radius:3px;background:var(--border);margin:0 auto 3px}
+.hint{font-size:12px;color:var(--text2);padding:7px 11px;background:var(--bg2);border-radius:var(--radius-sm);margin-bottom:14px;border:1px solid var(--border);font-weight:500}
+.page{display:none}
+.page.active{display:block}
+label{font-size:13px;color:var(--text2);font-weight:600}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HOME -->
+  <div id="page-home" class="page active">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h1 style="font-size:20px;font-weight:700;color:var(--pink)">Workout tracker</h1>
+      <div style="display:flex;gap:6px">
+        <button onclick="exportData()" style="font-size:12px;padding:4px 10px">Export</button>
+        <button onclick="showPage('config')" style="font-size:12px;padding:4px 10px">Exercises</button>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <button onclick="changeWeek(-1)" style="padding:4px 10px;font-size:14px">‹</button>
+      <span id="week-label" style="flex:1;text-align:center;font-size:13px;color:var(--text2);font-weight:500"></span>
+      <button id="btn-next" onclick="changeWeek(1)" style="padding:4px 10px;font-size:14px">›</button>
+    </div>
+    <div id="metric-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px"></div>
+    <div class="day-grid" id="day-grid"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0">
+      <button class="pink" style="padding:13px 0;font-size:15px;border-radius:var(--radius)" onclick="startStrength()">+ Strength</button>
+      <button class="green" style="padding:13px 0;font-size:15px;border-radius:var(--radius)" onclick="startRunning()">+ Running</button>
+    </div>
+    <div class="slabel">This week</div>
+    <div id="week-log"></div>
+  </div>
+
+  <!-- STRENGTH SELECT -->
+  <div id="page-strength-select" class="page">
+    <div style="font-size:17px;font-weight:700;color:var(--pink);margin-bottom:14px" id="title-strength-select"></div>
+    <div style="margin-bottom:12px">
+      <label style="display:block;margin-bottom:4px">Date</label>
+      <input type="date" id="s-date" style="width:100%"/>
+    </div>
+    <div class="slabel">Suggested — least recently done</div>
+    <div class="chips" id="suggested-chips"></div>
+    <div class="slabel">All exercises</div>
+    <div class="chips" id="all-chips"></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button onclick="cancelEdit()" style="flex:1">Cancel</button>
+      <button class="pink" id="btn-continue" style="flex:2" onclick="initStrengthLog()">Continue →</button>
+    </div>
+  </div>
+
+  <!-- STRENGTH LOG -->
+  <div id="page-strength-log" class="page">
+    <div style="font-size:17px;font-weight:700;color:var(--pink);margin-bottom:14px" id="title-strength-log"></div>
+    <div class="hint" id="s-log-hint"></div>
+    <div id="exercise-blocks"></div>
+    <div style="margin-bottom:12px">
+      <div class="slabel">Add more exercises</div>
+      <div class="chips" id="add-more-chips"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="showPage('strength-select')" style="flex:1">← Back</button>
+      <button class="pink" id="btn-save-strength" style="flex:2" onclick="saveStrength()">Save session</button>
+    </div>
+  </div>
+
+  <!-- RUNNING -->
+  <div id="page-running" class="page">
+    <div style="font-size:17px;font-weight:700;color:var(--pink);margin-bottom:14px" id="title-running"></div>
+    <div style="margin-bottom:10px">
+      <label style="display:block;margin-bottom:4px">Date</label>
+      <input type="date" id="r-date" style="width:100%"/>
+    </div>
+    <div id="last-run-hint"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div><label style="display:block;margin-bottom:4px">Distance (km)</label><input type="number" inputmode="decimal" id="r-km" placeholder="0.0" style="width:100%"/></div>
+      <div><label style="display:block;margin-bottom:4px">Time (min)</label><input type="number" inputmode="numeric" id="r-min" placeholder="0" style="width:100%"/></div>
+    </div>
+    <div style="margin-bottom:14px">
+      <label style="display:block;margin-bottom:4px">Note (optional)</label>
+      <input type="text" id="r-note" placeholder="Easy run, tempo, intervals..." style="width:100%"/>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="cancelEdit()" style="flex:1">Cancel</button>
+      <button class="green" id="btn-save-run" style="flex:2" onclick="saveRun()">Save run</button>
+    </div>
+  </div>
+
+  <!-- CONFIG -->
+  <div id="page-config" class="page">
+    <div style="font-size:17px;font-weight:700;color:var(--pink);margin-bottom:14px">Exercises</div>
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <input type="text" id="new-ex" placeholder="New exercise name..." style="flex:1" onkeydown="if(event.key==='Enter')addExercise()"/>
+      <button class="pink" onclick="addExercise()">Add</button>
+    </div>
+    <div id="ex-list" style="max-height:400px;overflow-y:auto;margin-bottom:12px"></div>
+    <button style="width:100%" onclick="showPage('home')">Done</button>
+  </div>
+
+</div>
+<script>
+const STORAGE_KEY = "workout_tracker_v3";
+const DEFAULT_EXERCISES = ["Bench press","Squat","Deadlift","Overhead press","Barbell row","Pull-up","Dip","Incline bench press","Lat pulldown","Seated cable row","Leg press","Romanian deadlift","Bicep curl","Tricep pushdown","Face pull","Lateral raise","Hip thrust","Lunge","Plank"];
+const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+let state = { exercises: DEFAULT_EXERCISES.slice(), logs: [] };
+let weekStart = getWeekStart();
+let selectedExercises = [];
+let editEntry = null;
+
+// ── STORAGE ───────────────────────────────────────────────────────────────────
+function loadState() {
+  try { const s = localStorage.getItem(STORAGE_KEY); if (s) state = JSON.parse(s); } catch(e) {}
+}
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+// ── DATE HELPERS ──────────────────────────────────────────────────────────────
+function formatDate(d) {
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function todayStr() { return formatDate(new Date()); }
+function toDate(str) { return new Date(str+"T00:00:00"); }
+function getWeekStart(d) {
+  if (!d) d = new Date();
+  const day = d.getDay(), diff = day===0?-6:1-day, m = new Date(d);
+  m.setDate(d.getDate()+diff); m.setHours(0,0,0,0); return m;
+}
+function isSameWeek(dateStr, ws) {
+  const d = toDate(dateStr), end = new Date(ws); end.setDate(ws.getDate()+6);
+  return d >= ws && d <= end;
+}
+function friendlyDate(str) {
+  const d = toDate(str), now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diff = Math.round((today - d) / 86400000);
+  if (diff===0) return "today";
+  if (diff===1) return "yesterday";
+  if (diff<7) return d.toLocaleDateString("en",{weekday:"long"});
+  return d.toLocaleDateString("en",{day:"numeric",month:"short"});
+}
+function weekLabelStr(ws) {
+  const end = new Date(ws); end.setDate(ws.getDate()+6);
+  const f = d => d.getDate()+" "+d.toLocaleString("default",{month:"short"});
+  return f(ws)+" – "+f(end);
+}
+
+// ── PT SUGGESTION ENGINE ──────────────────────────────────────────────────────
+function getPTSuggestion(last) {
+  if (!last) return { type:"first", icon:"👋", text:"First time — start light and focus on form. You can always go heavier next time." };
+  const kg = parseFloat(last.kg || (last.sets&&last.sets[0]&&last.sets[0].kg) || 0);
+  const reps = (last.sets||[]).map(s => parseInt(s.reps)||0);
+  if (!reps.length) return null;
+  const avg = reps.reduce((a,b)=>a+b,0) / reps.length;
+  const dropOff = reps[0]>0 ? (reps[0]-reps[reps.length-1])/reps[0] : 0;
+  const bump = kg>=60 ? 5 : 2.5;
+  if (avg>=10 && dropOff<0.2) return { type:"increase", icon:"↑", text:"Strong session — "+avg.toFixed(0)+" reps avg, good endurance. Try "+(kg+bump)+" kg today.", suggestedKg: kg+bump };
+  if (avg>=6 && dropOff>=0.2 && dropOff<0.4) return { type:"maintain", icon:"→", text:"Good work but you faded on later sets. Keep "+kg+" kg and focus on more even sets." };
+  if (dropOff>=0.4 || reps[reps.length-1]<=3) return { type:"deload", icon:"↓", text:"You struggled toward the end last time. Try "+(kg-2.5)+" kg — quality over quantity.", suggestedKg: kg-2.5 };
+  if (avg<=5 && Math.min(...reps)>=2) return { type:"increase", icon:"↑", text:"Solid strength work at "+kg+" kg. If all sets felt controlled, try "+(kg+bump)+" kg.", suggestedKg: kg+bump };
+  return { type:"maintain", icon:"→", text:"Aim to match last session at "+kg+" kg. If it feels easy, push for an extra rep per set." };
+}
+
+function getLastSession(name, excludeDate) {
+  const matches = [];
+  state.logs.forEach(l => {
+    if (l.type!=="strength" || l.date===excludeDate) return;
+    (l.exercises||[]).forEach(e => { if (e.name===name) matches.push(Object.assign({date:l.date},e)); });
+  });
+  matches.sort((a,b) => b.date.localeCompare(a.date));
+  return matches[0]||null;
+}
+
+// ── PAGE ROUTING ──────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById("page-"+name).classList.add("active");
+  window.scrollTo(0,0);
+  if (name==="home") renderHome();
+  if (name==="config") renderConfig();
+}
+
+function cancelEdit() { editEntry = null; showPage("home"); }
+
+// ── HOME ──────────────────────────────────────────────────────────────────────
+function renderHome() {
+  const isNow = formatDate(weekStart)===formatDate(getWeekStart());
+  const sLogs = state.logs.filter(l => l.type==="strength" && isSameWeek(l.date,weekStart));
+  const rLogs = state.logs.filter(l => l.type==="running"  && isSameWeek(l.date,weekStart));
+
+  document.getElementById("week-label").textContent = weekLabelStr(weekStart)+(isNow?" · this week":"");
+  document.getElementById("btn-next").disabled = isNow;
+  document.getElementById("btn-next").style.opacity = isNow?"0.3":"1";
+
+  document.getElementById("metric-grid").innerHTML =
+    [["Strength",sLogs.length,"var(--pink)"],["Running",rLogs.length,"var(--green)"]].map(([lbl,cnt,col])=>`
+      <div class="metric">
+        <div class="slabel" style="margin-bottom:5px">${lbl}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:22px;font-weight:600">${cnt}<span style="font-size:13px;font-weight:400;color:var(--text3)">/2</span></span>
+          <div class="bar-wrap"><div class="bar-fill" style="width:${Math.min(100,cnt/2*100)}%;background:${col}"></div></div>
+        </div>
+      </div>`).join("");
+
+  document.getElementById("day-grid").innerHTML = DAYS.map((d,i)=>{
+    const date = new Date(weekStart); date.setDate(weekStart.getDate()+i);
+    const ds = formatDate(date);
+    const hasS = sLogs.some(l=>l.date===ds), hasR = rLogs.some(l=>l.date===ds);
+    const today = ds===todayStr();
+    return `<div class="day-col">
+      <div style="font-size:10px;font-weight:${today?700:600};letter-spacing:.03em;color:${today?"var(--pink)":"var(--text3)"};margin-bottom:4px">${d}</div>
+      <div class="dot" style="${hasS?"background:var(--pink)":""}"></div>
+      <div class="dot" style="${hasR?"background:var(--green)":""}"></div>
+    </div>`;
+  }).join("");
+
+  const weekLogs = state.logs.filter(l=>isSameWeek(l.date,weekStart)).sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById("week-log").innerHTML = !weekLogs.length
+    ? `<div style="text-align:center;color:var(--text3);padding:28px 0;font-size:14px">No workouts logged this week yet</div>`
+    : weekLogs.map((l,idx)=>`
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <span style="font-size:13px;font-weight:600;color:${l.type==="strength"?"var(--pink)":"var(--green)"}">${l.type==="strength"?"Strength":"Running"}</span>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="font-size:12px;color:var(--text3);font-weight:500">${friendlyDate(l.date)}</span>
+            <button onclick="editLog(${state.logs.indexOf(l)})" style="font-size:11px;padding:2px 9px;border-radius:6px">Edit</button>
+          </div>
+        </div>
+        ${l.type==="running" ? `
+          <div style="font-size:13px">
+            ${l.km>0?l.km+" km &nbsp;":""}${l.min>0?l.min+" min &nbsp;":""}
+            ${l.km>0&&l.min>0?`<span style="color:var(--text2)">${(l.min/l.km).toFixed(1)} min/km</span>`:""}
+            ${l.note?`<div style="font-size:12px;color:var(--text2);margin-top:2px">${l.note}</div>`:""}
+          </div>` : `
+          <div>${(l.exercises||[]).map(ex=>`
+            <div style="font-size:13px;margin-bottom:3px;display:flex;gap:8px;flex-wrap:wrap">
+              <span style="font-weight:600;min-width:110px">${ex.name}</span>
+              <span style="color:var(--text2)">${ex.kg}kg — ${(ex.sets||[]).map(s=>s.reps+"r").join(", ")}</span>
+            </div>`).join("")}
+          </div>`}
+      </div>`).join("");
+}
+
+function changeWeek(dir) {
+  const w = new Date(weekStart); w.setDate(w.getDate()+dir*7);
+  if (w > getWeekStart()) return;
+  weekStart = w; renderHome();
+}
+
+// ── STRENGTH ──────────────────────────────────────────────────────────────────
+function startStrength() { editEntry = null; openStrengthSelect(); }
+
+function editLog(idx) {
+  editEntry = state.logs[idx];
+  if (editEntry.type==="strength") openStrengthSelect();
+  else openRunning();
+}
+
+function openStrengthSelect() {
+  selectedExercises = editEntry ? (editEntry.exercises||[]).map(e=>e.name) : [];
+  const date = editEntry ? editEntry.date : todayStr();
+  document.getElementById("s-date").value = date;
+  document.getElementById("title-strength-select").textContent = editEntry ? "Edit strength session" : "Log strength session";
+  renderSelectChips();
+  showPage("strength-select");
+}
+
+function renderSelectChips() {
+  const recent = state.logs.filter(l=>l.type==="strength").slice(-8);
+  const counts = {};
+  state.exercises.forEach(ex => { counts[ex] = recent.filter(l=>(l.exercises||[]).some(e=>e.name===ex)).length; });
+  const sugg = state.exercises.slice().sort((a,b)=>(counts[a]||0)-(counts[b]||0)).slice(0,5);
+
+  const chip = ex => `<span class="chip${selectedExercises.includes(ex)?" active":""}" onclick="toggleEx('${esc(ex)}')">${ex}</span>`;
+  document.getElementById("suggested-chips").innerHTML = sugg.map(chip).join("");
+  document.getElementById("all-chips").innerHTML = state.exercises.map(chip).join("");
+  const n = selectedExercises.length;
+  const btn = document.getElementById("btn-continue");
+  btn.textContent = editEntry ? "Update exercises →" : (n ? "Continue with "+n+" exercise"+(n!==1?"s":"")+" →" : "Continue →");
+  btn.disabled = n===0;
+}
+
+function toggleEx(name) {
+  if (selectedExercises.includes(name)) selectedExercises = selectedExercises.filter(x=>x!==name);
+  else selectedExercises.push(name);
+  renderSelectChips();
+}
+
+function initStrengthLog() {
+  if (!selectedExercises.length) return;
+  const date = document.getElementById("s-date").value;
+  document.getElementById("title-strength-log").textContent = editEntry ? "Edit strength session" : "Log strength session";
+  document.getElementById("s-log-hint").textContent = "Session on "+date+" — one weight for all sets, reps per set";
+  document.getElementById("btn-save-strength").textContent = editEntry ? "Save changes" : "Save session";
+
+  // Build exercise blocks
+  const existing = editEntry ? Object.fromEntries((editEntry.exercises||[]).map(ex=>[ex.name,ex])) : {};
+  document.getElementById("exercise-blocks").innerHTML = selectedExercises.map(ex=>{
+    const last = getLastSession(ex, date);
+    const saved = existing[ex];
+    const sugg = getPTSuggestion(last);
+    const lastKg = last&&(last.kg||(last.sets&&last.sets[0]&&last.sets[0].kg));
+    let kg = saved ? saved.kg : (sugg&&sugg.suggestedKg ? sugg.suggestedKg : (lastKg||""));
+    const sets = saved ? saved.sets : [{reps:""},{reps:""},{reps:""}];
+    const delta = (lastKg&&kg) ? parseFloat(kg)-parseFloat(lastKg) : null;
+    const deltaHtml = delta!==null&&delta!==0
+      ? `<span style="font-size:12px;font-weight:600;padding:3px 9px;border-radius:12px;color:${delta>0?"#1db87a":"var(--red)"};background:${delta>0?"rgba(29,184,122,.14)":"rgba(224,58,90,.1)"}">${delta>0?"+":""}${delta} kg</span>`
+      : delta===0 ? `<span style="font-size:11px;color:var(--text3)">same weight</span>` : "";
+
+    return `<div class="card" id="block-${escId(ex)}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-weight:700;font-size:15px">${ex}</div>
+        <button onclick="removeBlock('${esc(ex)}')" style="font-size:11px;padding:2px 7px;color:var(--red);border-color:var(--red);background:transparent">Remove</button>
+      </div>
+      ${last ? `<div class="last-badge">
+        <span>${friendlyDate(last.date)}</span>
+        <strong>${lastKg} kg</strong>
+        <span>${(last.sets||[]).length} sets</span>
+        <span>${(last.sets||[]).map(s=>s.reps).join(" / ")} reps</span>
+        <span style="margin-left:auto;color:var(--text3)">${((parseFloat(lastKg)||0)*(last.sets||[]).reduce((s,r)=>s+(parseInt(r.reps)||0),0)).toFixed(0)} kg total</span>
+      </div>` : `<div class="last-badge"><span style="color:var(--text3)">No previous session</span></div>`}
+      ${sugg ? `<div class="suggestion ${sugg.type}"><span style="font-size:14px;flex-shrink:0">${sugg.icon}</span><span>${sugg.text}</span></div>` : ""}
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+        <label>Weight (kg)</label>
+        <input class="center" type="number" inputmode="decimal" id="kg-${escId(ex)}"
+          placeholder="${lastKg||"0"}" value="${kg}"
+          oninput="updateDelta('${esc(ex)}','${lastKg||""}')"
+          style="width:80px;font-size:17px;font-weight:700"/>
+        <span id="delta-${escId(ex)}">${deltaHtml}</span>
+      </div>
+      <table class="sets-table" id="sets-${escId(ex)}">
+        <thead><tr><th class="left" style="width:40px">#</th><th style="width:72px">Reps</th><th style="width:32px"></th></tr></thead>
+        <tbody>${sets.map((s,i)=>setRowHtml(ex,i,s.reps||"")).join("")}</tbody>
+      </table>
+      <button onclick="addSet('${esc(ex)}')" style="font-size:12px;padding:4px 12px;margin-top:2px">+ set</button>
+    </div>`;
+  }).join("");
+
+  renderAddMoreChips();
+  showPage("strength-log");
+}
+
+function setRowHtml(ex, i, reps) {
+  return `<tr id="setrow-${escId(ex)}-${i}">
+    <td style="color:var(--text3);font-size:13px;font-weight:600;padding-left:2px">Set ${i+1}</td>
+    <td><input class="center" type="number" inputmode="numeric" placeholder="—" value="${reps}"
+      style="width:100%;font-size:16px;font-weight:600;padding:8px 6px"
+      id="reps-${escId(ex)}-${i}"/></td>
+    <td style="text-align:center"><button onclick="removeSet('${esc(ex)}',${i})" style="font-size:13px;padding:4px 6px;border:none;background:none;color:var(--text3)">✕</button></td>
+  </tr>`;
+}
+
+function addSet(ex) {
+  const tbody = document.querySelector("#sets-"+escId(ex)+" tbody");
+  const i = tbody.children.length;
+  tbody.insertAdjacentHTML("beforeend", setRowHtml(ex, i, ""));
+}
+
+function removeSet(ex, i) {
+  const row = document.getElementById("setrow-"+escId(ex)+"-"+i);
+  if (row) row.remove();
+  // Re-label remaining sets
+  const tbody = document.querySelector("#sets-"+escId(ex)+" tbody");
+  if (tbody) Array.from(tbody.children).forEach((tr,idx)=>{
+    const td = tr.querySelector("td");
+    if (td) td.textContent = "Set "+(idx+1);
+  });
+}
+
+function removeBlock(ex) {
+  selectedExercises = selectedExercises.filter(x=>x!==ex);
+  const block = document.getElementById("block-"+escId(ex));
+  if (block) block.remove();
+  renderAddMoreChips();
+}
+
+function renderAddMoreChips() {
+  document.getElementById("add-more-chips").innerHTML = state.exercises
+    .filter(ex=>!selectedExercises.includes(ex))
+    .map(ex=>`<span class="chip" onclick="addBlockInline('${esc(ex)}')"}>+ ${ex}</span>`)
+    .join("");
+}
+
+function addBlockInline(ex) {
+  selectedExercises.push(ex);
+  const date = document.getElementById("s-date").value;
+  const last = getLastSession(ex, date);
+  const sugg = getPTSuggestion(last);
+  const lastKg = last&&(last.kg||(last.sets&&last.sets[0]&&last.sets[0].kg))||"";
+  const kg = sugg&&sugg.suggestedKg ? sugg.suggestedKg : lastKg;
+  const sets = [{reps:""},{reps:""},{reps:""}];
+
+  const tmp = document.createElement("div");
+  tmp.innerHTML = `<div class="card" id="block-${escId(ex)}">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-weight:700;font-size:15px">${ex}</div>
+      <button onclick="removeBlock('${esc(ex)}')" style="font-size:11px;padding:2px 7px;color:var(--red);border-color:var(--red);background:transparent">Remove</button>
+    </div>
+    ${last ? `<div class="last-badge"><span>${friendlyDate(last.date)}</span><strong>${lastKg} kg</strong><span>${(last.sets||[]).length} sets</span><span>${(last.sets||[]).map(s=>s.reps).join(" / ")} reps</span></div>`
+            : `<div class="last-badge"><span style="color:var(--text3)">No previous session</span></div>`}
+    ${sugg ? `<div class="suggestion ${sugg.type}"><span style="font-size:14px;flex-shrink:0">${sugg.icon}</span><span>${sugg.text}</span></div>` : ""}
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+      <label>Weight (kg)</label>
+      <input class="center" type="number" inputmode="decimal" id="kg-${escId(ex)}" placeholder="${lastKg||"0"}" value="${kg}"
+        oninput="updateDelta('${esc(ex)}','${lastKg}')"
+        style="width:80px;font-size:17px;font-weight:700"/>
+      <span id="delta-${escId(ex)}"></span>
+    </div>
+    <table class="sets-table" id="sets-${escId(ex)}">
+      <thead><tr><th class="left" style="width:40px">#</th><th style="width:72px">Reps</th><th style="width:32px"></th></tr></thead>
+      <tbody>${sets.map((s,i)=>setRowHtml(ex,i,"")).join("")}</tbody>
+    </table>
+    <button onclick="addSet('${esc(ex)}')" style="font-size:12px;padding:4px 12px;margin-top:2px">+ set</button>
+  </div>`;
+  document.getElementById("exercise-blocks").appendChild(tmp.firstElementChild);
+  renderAddMoreChips();
+}
+
+function updateDelta(ex, lastKg) {
+  const el = document.getElementById("delta-"+escId(ex));
+  const input = document.getElementById("kg-"+escId(ex));
+  if (!el||!input||!lastKg) return;
+  const delta = parseFloat(input.value) - parseFloat(lastKg);
+  if (isNaN(delta)) { el.innerHTML=""; return; }
+  if (delta>0) el.innerHTML=`<span style="font-size:12px;font-weight:600;padding:3px 9px;border-radius:12px;color:#1db87a;background:rgba(29,184,122,.14)">+${delta} kg</span>`;
+  else if (delta<0) el.innerHTML=`<span style="font-size:12px;font-weight:600;padding:3px 9px;border-radius:12px;color:var(--red);background:rgba(224,58,90,.1)">${delta} kg</span>`;
+  else el.innerHTML=`<span style="font-size:11px;color:var(--text3)">same weight</span>`;
+}
+
+function saveStrength() {
+  const date = document.getElementById("s-date").value;
+  const entries = selectedExercises.map(ex=>{
+    const kg = document.getElementById("kg-"+escId(ex))?.value||"";
+    const tbody = document.querySelector("#sets-"+escId(ex)+" tbody");
+    const sets = [];
+    if (tbody) tbody.querySelectorAll("input[type=number]").forEach(inp=>{ if(inp.value) sets.push({reps:inp.value,kg}); });
+    return {name:ex,kg,sets};
+  }).filter(e=>e.sets.length);
+
+  const entry = {type:"strength",date,exercises:entries};
+  if (editEntry) state.logs = state.logs.map(l=>l===editEntry?entry:l);
+  else state.logs.push(entry);
+  editEntry = null;
+  saveState();
+  weekStart = getWeekStart();
+  showPage("home");
+}
+
+// ── RUNNING ───────────────────────────────────────────────────────────────────
+function startRunning() { editEntry = null; openRunning(); }
+
+function openRunning() {
+  document.getElementById("title-running").textContent = editEntry ? "Edit run" : "Log run";
+  document.getElementById("btn-save-run").textContent = editEntry ? "Save changes" : "Save run";
+  document.getElementById("r-date").value = editEntry ? editEntry.date : todayStr();
+  document.getElementById("r-km").value = editEntry ? editEntry.km : "";
+  document.getElementById("r-min").value = editEntry ? editEntry.min : "";
+  document.getElementById("r-note").value = editEntry ? (editEntry.note||"") : "";
+  const last = state.logs.filter(l=>l.type==="running"&&l!==editEntry).sort((a,b)=>b.date.localeCompare(a.date))[0];
+  document.getElementById("last-run-hint").innerHTML = last
+    ? `<div class="last-badge" style="margin-bottom:12px"><span>Last run: ${friendlyDate(last.date)}</span><strong>${last.km} km</strong><span>${last.min} min</span></div>`
+    : "";
+  showPage("running");
+}
+
+function saveRun() {
+  const entry = {
+    type:"running",
+    date: document.getElementById("r-date").value,
+    km: parseFloat(document.getElementById("r-km").value)||0,
+    min: parseFloat(document.getElementById("r-min").value)||0,
+    note: document.getElementById("r-note").value
+  };
+  if (editEntry) state.logs = state.logs.map(l=>l===editEntry?entry:l);
+  else state.logs.push(entry);
+  editEntry = null;
+  saveState();
+  weekStart = getWeekStart();
+  showPage("home");
+}
+
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+function renderConfig() {
+  document.getElementById("new-ex").value = "";
+  document.getElementById("ex-list").innerHTML = state.exercises.map(ex=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--border)">
+      <span style="font-size:14px">${ex}</span>
+      <button class="danger" onclick="removeExercise('${esc(ex)}')" style="font-size:12px;padding:3px 10px">Remove</button>
+    </div>`).join("");
+}
+
+function addExercise() {
+  const v = document.getElementById("new-ex").value.trim();
+  if (v && !state.exercises.includes(v)) { state.exercises.push(v); saveState(); renderConfig(); }
+  document.getElementById("new-ex").value = "";
+}
+
+function removeExercise(ex) {
+  state.exercises = state.exercises.filter(x=>x!==ex);
+  saveState(); renderConfig();
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────────────────
+function exportData() {
+  const blob = new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href=url; a.download="workouts-"+todayStr()+".json"; a.click(); URL.revokeObjectURL(url);
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function esc(s) { return s.replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
+function escId(s) { return CSS.escape(s); }
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+loadState();
+renderHome();
+</script>
+</body>
+</html>
