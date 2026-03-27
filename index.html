@@ -443,7 +443,7 @@ function removeBlock(ex) {
 function renderAddMoreChips() {
   document.getElementById("add-more-chips").innerHTML = state.exercises
     .filter(ex=>!selectedExercises.includes(ex))
-    .map(ex=>`<span class="chip" onclick="addBlockInline('${esc(ex)}')"}>+ ${ex}</span>`)
+    .map(ex=>`<span class="chip" onclick="addBlockInline('${esc(ex)}')">+ ${ex}</span>`)
     .join("");
 }
 
@@ -576,7 +576,7 @@ function exportData() {
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 function esc(s) { return s.replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
-function escId(s) { return CSS.escape(s); }
+ffunction escId(s) { return s.replace(/\s+/g,"-").replace(/[^a-zA-Z0-9_-]/g,"_"); }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 loadState();
