@@ -576,7 +576,7 @@ function exportData() {
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 function esc(s) { return s.replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
-ffunction escId(s) { return s.replace(/\s+/g,"-").replace(/[^a-zA-Z0-9_-]/g,"_"); }
+function escId(s) { return s.replace(/\s+/g,"-").replace(/[^a-zA-Z0-9_-]/g,"_"); }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 loadState();
